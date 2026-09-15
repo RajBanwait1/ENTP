@@ -1,0 +1,347 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>What Grade Do I Need?</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 16px;
+      background: #F6F4EF;
+      color: #1F2933;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 460px;
+      padding: 40px 36px;
+      background: #FFFFFF;
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px rgba(16, 24, 40, 0.06);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .intro {
+      margin: 0 0 32px;
+      color: #667085;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      font: inherit;
+      font-size: 1rem;
+      color: #1F2933;
+      background: #FFFFFF;
+      border: 1px solid #D0D5DD;
+      border-radius: 8px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #243B53;
+      box-shadow: 0 0 0 3px rgba(36, 59, 83, 0.25);
+    }
+
+    input[aria-invalid="true"] {
+      border-color: #A33A32;
+    }
+
+    input[aria-invalid="true"]:focus {
+      box-shadow: 0 0 0 3px rgba(163, 58, 50, 0.25);
+    }
+
+    .error {
+      margin: 6px 0 0;
+      font-size: 0.875rem;
+      color: #A33A32;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 13px 16px;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #FFFFFF;
+      background: #243B53;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    button:hover {
+      background: #1B2F42;
+    }
+
+    button:focus-visible {
+      outline: 3px solid #243B53;
+      outline-offset: 3px;
+    }
+
+    .result {
+      margin-top: 32px;
+      padding: 20px;
+      background: #F6F4EF;
+      border-left: 4px solid #2F6B4F;
+      border-radius: 8px;
+    }
+
+    .result:empty {
+      display: none;
+    }
+
+    .result--impossible {
+      border-left-color: #A33A32;
+    }
+
+    .result p {
+      margin: 0;
+    }
+
+    .result-number {
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #2F6B4F;
+    }
+
+    .result--impossible .result-number {
+      color: #A33A32;
+    }
+
+    .result-headline {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #2F6B4F;
+    }
+
+    .result .result-note {
+      margin-top: 12px;
+    }
+
+    .result--impossible .result-note {
+      font-weight: 600;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        align-items: flex-start;
+        padding: 24px 12px;
+      }
+
+      .card {
+        padding: 28px 20px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>What Grade Do I Need?</h1>
+    <p class="intro">Find out what score you need on your final exam or remaining assignment to reach your target course grade.</p>
+
+    <form id="grade-form" novalidate>
+      <div class="field">
+        <label for="current-grade">Current Course Grade (%)</label>
+        <input id="current-grade" type="number" inputmode="decimal" step="any" min="0" max="100" aria-describedby="current-grade-error">
+        <p id="current-grade-error" class="error" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="remaining-weight">Remaining Assignment Weight (%)</label>
+        <input id="remaining-weight" type="number" inputmode="decimal" step="any" min="0" max="100" aria-describedby="remaining-weight-error">
+        <p id="remaining-weight-error" class="error" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="desired-grade">Desired Final Grade (%)</label>
+        <input id="desired-grade" type="number" inputmode="decimal" step="any" min="0" max="100" aria-describedby="desired-grade-error">
+        <p id="desired-grade-error" class="error" hidden></p>
+      </div>
+
+      <button type="submit">Calculate Grade Needed</button>
+    </form>
+
+    <div id="result" class="result" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const form = document.getElementById("grade-form");
+    const resultBox = document.getElementById("result");
+
+    const fields = {
+      current: {
+        input: document.getElementById("current-grade"),
+        error: document.getElementById("current-grade-error"),
+        label: "Current course grade",
+        isInRange: function (value) { return value >= 0 && value <= 100; },
+        rangeMessage: "Current course grade must be between 0 and 100."
+      },
+      weight: {
+        input: document.getElementById("remaining-weight"),
+        error: document.getElementById("remaining-weight-error"),
+        label: "Remaining assignment weight",
+        isInRange: function (value) { return value > 0 && value <= 100; },
+        rangeMessage: "Remaining assignment weight must be greater than 0 and no more than 100."
+      },
+      desired: {
+        input: document.getElementById("desired-grade"),
+        error: document.getElementById("desired-grade-error"),
+        label: "Desired final grade",
+        isInRange: function (value) { return value >= 0 && value <= 100; },
+        rangeMessage: "Desired final grade must be between 0 and 100."
+      }
+    };
+
+    // Required grade = (desired final grade - current grade x (1 - remaining weight)) / remaining weight,
+    // with the remaining weight converted from a percentage to a decimal (25% becomes 0.25).
+    function calculateRequiredGrade(currentGrade, remainingWeightPercent, desiredGrade) {
+      const remainingWeight = remainingWeightPercent / 100;
+      const required = (desiredGrade - currentGrade * (1 - remainingWeight)) / remainingWeight;
+
+      // Remove floating-point noise such as 92.00000000000003 before comparing or displaying.
+      return Math.round(required * 1e9) / 1e9;
+    }
+
+    // Keeps whole numbers whole (96) and rounds everything else to one decimal place (87.4).
+    function roundToOneDecimal(value) {
+      return Math.round(value * 10) / 10 || 0;
+    }
+
+    // "an" for numbers that are spoken starting with a vowel sound: 8, 80-89, 11, 18 ("an 88.5%").
+    function articleFor(value) {
+      const whole = String(Math.floor(Math.abs(value)));
+      return /^8/.test(whole) || /^(11|18)(\d{3})*$/.test(whole) ? "an" : "a";
+    }
+
+    function showError(field, message) {
+      field.error.textContent = message;
+      field.error.hidden = false;
+      field.input.setAttribute("aria-invalid", "true");
+      return null;
+    }
+
+    function clearError(field) {
+      field.error.textContent = "";
+      field.error.hidden = true;
+      field.input.removeAttribute("aria-invalid");
+    }
+
+    // Returns the number entered in a field, or null after displaying a validation message.
+    function readNumber(field) {
+      const raw = field.input.value.trim();
+
+      // Browsers report unparseable text in a number input as an empty value with badInput set.
+      if (field.input.validity.badInput) {
+        return showError(field, field.label + " must be a valid number.");
+      }
+      if (raw === "") {
+        return showError(field, "Enter your " + field.label.toLowerCase() + ".");
+      }
+
+      const value = Number(raw);
+      if (!Number.isFinite(value)) {
+        return showError(field, field.label + " must be a valid number.");
+      }
+      if (!field.isInRange(value)) {
+        return showError(field, field.rangeMessage);
+      }
+
+      clearError(field);
+      return value;
+    }
+
+    function addParagraph(className, text) {
+      const paragraph = document.createElement("p");
+      paragraph.className = className;
+      paragraph.textContent = text;
+      resultBox.append(paragraph);
+    }
+
+    function showResult(requiredGrade, desiredGrade) {
+      const desiredText = articleFor(desiredGrade) + " " + desiredGrade + "%";
+
+      if (requiredGrade <= 0) {
+        resultBox.className = "result result--secured";
+        addParagraph("result-headline", "You have already secured your target grade.");
+        addParagraph("result-note", "Even a 0% on the remaining assignment would leave you at or above your desired final grade.");
+        return;
+      }
+
+      const isImpossible = requiredGrade > 100;
+      const shown = roundToOneDecimal(requiredGrade);
+
+      const number = document.createElement("span");
+      number.className = "result-number";
+      number.textContent = shown + "%";
+
+      const sentence = document.createElement("p");
+      sentence.append(
+        (isImpossible ? "You would need " : "You need ") + articleFor(shown) + " ",
+        number,
+        " on your remaining assignment to finish the course with " + desiredText + "."
+      );
+
+      resultBox.className = "result " + (isImpossible ? "result--impossible" : "result--normal");
+      resultBox.append(sentence);
+
+      if (isImpossible) {
+        addParagraph("result-note", "This target is not possible unless extra credit is available.");
+      }
+    }
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      resultBox.textContent = "";
+      resultBox.className = "result";
+
+      const currentGrade = readNumber(fields.current);
+      const remainingWeight = readNumber(fields.weight);
+      const desiredGrade = readNumber(fields.desired);
+
+      if (currentGrade === null || remainingWeight === null || desiredGrade === null) {
+        form.querySelector("[aria-invalid=true]").focus();
+        return;
+      }
+
+      showResult(calculateRequiredGrade(currentGrade, remainingWeight, desiredGrade), desiredGrade);
+    });
+  </script>
+</body>
+</html>
