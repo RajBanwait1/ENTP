@@ -4,16 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-A static site of class projects. Each project lives in its own folder as a single self-contained `index.html` (HTML, CSS, and JS in one file, no external dependencies). The root `index.html` is a landing page linking to each project.
+A grade-needed calculator: a single self-contained `GradeNeededCalculator/index.html` (HTML, CSS, and JS in one file, no external dependencies).
 
 ## Commands
 
-There is no build, test, or lint tooling. Open any `index.html` directly in a browser to run it.
+There is no build, test, or lint tooling. Open `GradeNeededCalculator/index.html` directly in a browser to run it.
 
 ## Architecture
 
-- `index.html` — landing page. When adding a project, add a link to it here and to `README.md`.
-- `GradeNeededCalculator/index.html` — grade-needed calculator.
+There is no root `index.html`. `vercel.json` rewrites `/` to `/GradeNeededCalculator/index.html`, so the app is served at the site root while its source stays in its folder. Vercel serves real files before applying rewrites, so adding a root `index.html` would replace the app at `/`.
 
 ## Deployment
 
